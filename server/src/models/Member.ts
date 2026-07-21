@@ -42,6 +42,8 @@ const MemberSchema = new Schema<IMember>(
       lowercase: true,
       trim: true,
       default: undefined,
+      // Optional, but if present it must look like an email address.
+      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
     },
 
     gender: {
