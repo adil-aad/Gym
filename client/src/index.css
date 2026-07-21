@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+/* ── Design tokens ───────────────────────────────────────────────
+   Gym back-office identity: a charcoal "equipment rail", a cobalt
+   accent, chalk-cool surfaces, and a mono readout for every number.
+   Slate stays the neutral so the existing utility classes still read. */
+@theme {
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Cobalt accent ramp — replaces default blue for actions/brand. */
+  --color-cobalt-50: #eef3fe;
+  --color-cobalt-100: #d9e4fd;
+  --color-cobalt-200: #b8ccfb;
+  --color-cobalt-300: #8aa9f6;
+  --color-cobalt-400: #5c81ef;
+  --color-cobalt-500: #2f5fe0;
+  --color-cobalt-600: #2149c4;
+  --color-cobalt-700: #1c3c9e;
+  --color-cobalt-800: #1b347e;
+  --color-cobalt-900: #1a2f68;
+
+  /* Charcoal — the sidebar rail and signage ink. */
+  --color-rail-800: #111a2e;
+  --color-rail-900: #0b1220;
+  --color-rail-950: #060a14;
+}
+
 html,
 body,
 #root {
@@ -8,5 +35,33 @@ body,
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  background-color: #f1f4f9;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Signage: heavy, tightly tracked uppercase for eyebrows and headings. */
+.font-signage {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+/* Readout: mono figures with tabular numerals for stat alignment. */
+.font-readout {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Respect reduced-motion for the sidebar/transition work. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

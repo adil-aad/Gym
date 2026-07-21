@@ -3,11 +3,11 @@ import type { ReactNode } from 'react'
 type Tone = 'green' | 'red' | 'amber' | 'slate' | 'blue'
 
 const TONES: Record<Tone, string> = {
-  green: 'bg-green-100 text-green-800',
-  red: 'bg-red-100 text-red-800',
-  amber: 'bg-amber-100 text-amber-800',
-  slate: 'bg-slate-100 text-slate-700',
-  blue: 'bg-blue-100 text-blue-800',
+  green: 'bg-green-100 text-green-800 ring-green-600/20',
+  red: 'bg-red-100 text-red-800 ring-red-600/20',
+  amber: 'bg-amber-100 text-amber-800 ring-amber-600/20',
+  slate: 'bg-slate-100 text-slate-700 ring-slate-500/20',
+  blue: 'bg-cobalt-100 text-cobalt-800 ring-cobalt-600/20',
 }
 
 export function Badge({
@@ -19,7 +19,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TONES[tone]}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide ring-1 ring-inset ${TONES[tone]}`}
     >
       {children}
     </span>

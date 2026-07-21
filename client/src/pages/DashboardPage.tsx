@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '../components/layout/PageHeader'
-import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Card, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Spinner } from '../components/ui/Spinner'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -12,7 +12,7 @@ import { membersApi } from '../api/members'
 import { queryKeys } from '../lib/queryKeys'
 import { formatCurrency, formatDate, daysUntil } from '../lib/format'
 
-function StatCard({
+function StatTile({
   label,
   value,
   loading,
@@ -24,17 +24,24 @@ function StatCard({
   to?: string
 }) {
   const body = (
-    <CardBody>
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">
-        {loading ? <Spinner className="h-5 w-5" /> : value}
+    <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white px-5 py-5">
+      {/* Cobalt keyline — the scoreboard tally mark. */}
+      <span className="absolute inset-y-0 left-0 w-1 bg-cobalt-500" />
+      <p className="font-signage text-[0.625rem] text-slate-500">{label}</p>
+      <p className="mt-3 font-readout text-3xl font-medium text-slate-900">
+        {loading ? <Spinner className="h-6 w-6" /> : value}
       </p>
-    </CardBody>
+    </div>
   )
-  return (
-    <Card className={to ? 'transition-shadow hover:shadow-md' : ''}>
-      {to ? <Link to={to}>{body}</Link> : body}
-    </Card>
+  return to ? (
+    <Link
+      to={to}
+      className="block transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cobalt-500 focus-visible:ring-offset-1"
+    >
+      {body}
+    </Link>
+  ) : (
+    body
   )
 }
 
@@ -55,27 +62,27 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${user?.name ?? ''}`}
-        description="Here's what's happening at your gym."
+        title="The Floor"
+        description={`Welcome back, ${user?.name ?? ''}. Here's where the gym stands today.`}
       />
 
       <div
         className={`mb-6 grid gap-4 ${isOwner ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
       >
-        <StatCard
+        <StatTile
           label="Active members"
           value={activeCount.data?.total ?? 0}
           loading={activeCount.isLoading}
           to="/members"
         />
-        <StatCard
+        <StatTile
           label="Expiring in 7 days"
           value={expiring.data?.length ?? 0}
           loading={expiring.isLoading}
         />
         {isOwner && (
-          <StatCard
-            label={`Revenue (${year})`}
+          <StatTile
+            label={`Revenue ${year}`}
             value={formatCurrency(revenue.data?.yearRevenue)}
             loading={revenue.isLoading}
             to="/revenue"
@@ -98,13 +105,43 @@ export default function DashboardPage() {
             description="All active memberships run beyond the next 7 days."
           />
         ) : (
-          <table className="w-full text-sm">
+          <>
+          {/* Mobile: card list. */}
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {expiring.data.map((m) => {
+              const days = daysUntil(m.expiryDate)
+              return (
+                <li key={m._id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        to={`/members/${m._id}`}
+                        className="font-medium text-slate-900 hover:underline"
+                      >
+                        {m.fullName}
+                      </Link>
+                      <p className="text-xs text-slate-500">{m.phone}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {m.currentPlan?.title ?? '—'} · expires {formatDate(m.expiryDate)}
+                      </p>
+                    </div>
+                    <Badge tone={days <= 2 ? 'red' : 'amber'}>
+                      {days} day{days === 1 ? '' : 's'}
+                    </Badge>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Desktop: table. */}
+          <table className="hidden w-full text-sm md:table">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3 font-medium">Member</th>
-                <th className="px-5 py-3 font-medium">Plan</th>
-                <th className="px-5 py-3 font-medium">Expires</th>
-                <th className="px-5 py-3 font-medium">Days left</th>
+              <tr className="border-b border-slate-100 text-left font-signage text-[0.625rem] text-slate-500">
+                <th className="px-5 py-3">Member</th>
+                <th className="px-5 py-3">Plan</th>
+                <th className="px-5 py-3">Expires</th>
+                <th className="px-5 py-3">Days left</th>
               </tr>
             </thead>
             <tbody>
@@ -140,6 +177,7 @@ export default function DashboardPage() {
               })}
             </tbody>
           </table>
+          </>
         )}
       </Card>
     </>

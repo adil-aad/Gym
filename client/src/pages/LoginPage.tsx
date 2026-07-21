@@ -32,12 +32,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold text-slate-900">Gym Manager</h1>
-          <p className="mt-1 text-sm text-slate-500">Sign in to your account</p>
+    <div className="flex min-h-full items-center justify-center bg-[#0B1220] px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6">
+          <div className="mb-5 h-1 w-10 rounded-full bg-[#2F5FE0]" aria-hidden />
+          <h1 className="font-signage text-2xl leading-none text-white">Gym Manager</h1>
+          <p className="mt-2 font-signage text-[0.625rem] text-slate-400">Staff sign-in</p>
         </div>
+        <div className="rounded-xl border border-white/10 bg-white p-8 shadow-lg">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             label="Email"
@@ -62,6 +64,7 @@ export default function LoginPage() {
             Sign in
           </Button>
         </form>
+        </div>
       </div>
     </div>
   )

@@ -93,13 +93,53 @@ export default function PlansPage() {
             action={isOwner ? <Button onClick={openCreate}>New plan</Button> : undefined}
           />
         ) : (
-          <table className="w-full text-sm">
+          <>
+          {/* Mobile: card list. */}
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {plans.map((plan) => (
+              <li key={plan._id} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">{plan.title}</p>
+                    {plan.description && (
+                      <p className="mt-0.5 text-xs text-slate-500">{plan.description}</p>
+                    )}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {plan.durationInMonths} mo · {formatCurrency(plan.price)}
+                    </p>
+                  </div>
+                  <Badge tone={plan.isActive ? 'green' : 'slate'}>
+                    {plan.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {isOwner && (
+                  <div className="mt-2 flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(plan)}>
+                      Edit
+                    </Button>
+                    {plan.isActive && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setToDeactivate(plan)}
+                      >
+                        Deactivate
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: table. */}
+          <table className="hidden w-full text-sm md:table">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3 font-medium">Title</th>
-                <th className="px-5 py-3 font-medium">Duration</th>
-                <th className="px-5 py-3 font-medium">Price</th>
-                <th className="px-5 py-3 font-medium">Status</th>
+              <tr className="border-b border-slate-100 text-left font-signage text-[0.625rem] text-slate-500">
+                <th className="px-5 py-3">Title</th>
+                <th className="px-5 py-3">Duration</th>
+                <th className="px-5 py-3">Price</th>
+                <th className="px-5 py-3">Status</th>
                 {isOwner && <th className="px-5 py-3" />}
               </tr>
             </thead>
@@ -154,6 +194,7 @@ export default function PlansPage() {
               ))}
             </tbody>
           </table>
+          </>
         )}
       </Card>
 

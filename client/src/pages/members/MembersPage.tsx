@@ -77,8 +77,8 @@ export default function MembersPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        <div className="w-64">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="w-full sm:w-64">
           <Input
             placeholder="Search name or phone…"
             value={search}
@@ -86,7 +86,7 @@ export default function MembersPage() {
             aria-label="Search members"
           />
         </div>
-        <div className="w-44">
+        <div className="w-full sm:w-44">
           <Select
             value={status}
             onChange={(e) =>
@@ -118,42 +118,63 @@ export default function MembersPage() {
             description="Try adjusting your search or filters, or add a new member."
           />
         ) : (
-          <table
-            className={`w-full text-sm ${isPlaceholderData ? 'opacity-60' : ''}`}
-          >
-            <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="px-5 py-3 font-medium">Phone</th>
-                <th className="px-5 py-3 font-medium">Plan</th>
-                <th className="px-5 py-3 font-medium">Expires</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className={isPlaceholderData ? 'opacity-60' : ''}>
+            {/* Mobile: card list. */}
+            <ul className="divide-y divide-slate-100 md:hidden">
               {members.map((m) => (
-                <tr
+                <li
                   key={m._id}
                   onClick={() => navigate(`/members/${m._id}`)}
-                  className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                  className="flex cursor-pointer items-start justify-between gap-3 px-4 py-3 hover:bg-slate-50"
                 >
-                  <td className="px-5 py-3 font-medium text-slate-900">
-                    {m.fullName}
-                  </td>
-                  <td className="px-5 py-3 text-slate-700">{m.phone}</td>
-                  <td className="px-5 py-3 text-slate-700">
-                    {m.currentPlan?.title ?? '—'}
-                  </td>
-                  <td className="px-5 py-3 text-slate-700">
-                    {formatDate(m.expiryDate)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <Badge tone={statusTone(m.status)}>{m.status}</Badge>
-                  </td>
-                </tr>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">{m.fullName}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">{m.phone}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {m.currentPlan?.title ?? '—'} · expires {formatDate(m.expiryDate)}
+                    </p>
+                  </div>
+                  <Badge tone={statusTone(m.status)}>{m.status}</Badge>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+
+            {/* Desktop: table. */}
+            <table className="hidden w-full text-sm md:table">
+              <thead>
+                <tr className="border-b border-slate-100 text-left font-signage text-[0.625rem] text-slate-500">
+                  <th className="px-5 py-3">Name</th>
+                  <th className="px-5 py-3">Phone</th>
+                  <th className="px-5 py-3">Plan</th>
+                  <th className="px-5 py-3">Expires</th>
+                  <th className="px-5 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((m) => (
+                  <tr
+                    key={m._id}
+                    onClick={() => navigate(`/members/${m._id}`)}
+                    className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                  >
+                    <td className="px-5 py-3 font-medium text-slate-900">
+                      {m.fullName}
+                    </td>
+                    <td className="px-5 py-3 text-slate-700">{m.phone}</td>
+                    <td className="px-5 py-3 text-slate-700">
+                      {m.currentPlan?.title ?? '—'}
+                    </td>
+                    <td className="px-5 py-3 text-slate-700">
+                      {formatDate(m.expiryDate)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <Badge tone={statusTone(m.status)}>{m.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 

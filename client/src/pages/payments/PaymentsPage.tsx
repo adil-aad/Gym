@@ -59,7 +59,7 @@ export default function PaymentsPage() {
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div className="w-44">
+        <div className="w-[calc(50%-0.375rem)] sm:w-44">
           <Input
             type="date"
             label="From"
@@ -67,7 +67,7 @@ export default function PaymentsPage() {
             onChange={(e) => onFilterChange(() => setFrom(e.target.value))}
           />
         </div>
-        <div className="w-44">
+        <div className="w-[calc(50%-0.375rem)] sm:w-44">
           <Input
             type="date"
             label="To"
@@ -107,27 +107,64 @@ export default function PaymentsPage() {
             description="Try widening the date range, or record a payment from a member's page."
           />
         ) : (
-          <table
-            className={`w-full text-sm ${isPlaceholderData ? 'opacity-60' : ''}`}
-          >
-            <thead>
-              <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3 font-medium">Date</th>
-                <th className="px-5 py-3 font-medium">Member</th>
-                <th className="px-5 py-3 font-medium">Plan</th>
-                <th className="px-5 py-3 font-medium">Method</th>
-                <th className="px-5 py-3 font-medium">Processed by</th>
-                <th className="px-5 py-3 text-right font-medium">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className={isPlaceholderData ? 'opacity-60' : ''}>
+            {/* Mobile: card list. */}
+            <ul className="divide-y divide-slate-100 md:hidden">
               {payments.map((p) => {
                 const member = memberOf(p)
                 return (
-                  <tr
-                    key={p._id}
-                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50"
-                  >
+                  <li key={p._id} className="px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        {member ? (
+                          <Link
+                            to={`/members/${member._id}`}
+                            className="font-medium text-slate-900 hover:underline"
+                          >
+                            {member.fullName}
+                          </Link>
+                        ) : (
+                          <span className="font-medium text-slate-900">—</span>
+                        )}
+                        {member?.phone && (
+                          <p className="text-xs text-slate-500">{member.phone}</p>
+                        )}
+                      </div>
+                      <span className="shrink-0 font-medium text-slate-900">
+                        {formatCurrency(p.amount)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                      <span>{formatDate(p.paymentDate)}</span>
+                      <span aria-hidden>·</span>
+                      <span>{planOf(p)?.title ?? '—'}</span>
+                      <Badge tone="slate">{paymentMethodLabel(p.paymentMethod)}</Badge>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+
+            {/* Desktop: table. */}
+            <table className="hidden w-full text-sm md:table">
+              <thead>
+                <tr className="border-b border-slate-100 text-left font-signage text-[0.625rem] text-slate-500">
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">Member</th>
+                  <th className="px-5 py-3">Plan</th>
+                  <th className="px-5 py-3">Method</th>
+                  <th className="px-5 py-3">Processed by</th>
+                  <th className="px-5 py-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => {
+                  const member = memberOf(p)
+                  return (
+                    <tr
+                      key={p._id}
+                      className="border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                    >
                     <td className="px-5 py-3 text-slate-700">
                       {formatDate(p.paymentDate)}
                     </td>
@@ -159,14 +196,15 @@ export default function PaymentsPage() {
                     <td className="px-5 py-3 text-slate-700">
                       {p.processedBy?.name ?? '—'}
                     </td>
-                    <td className="px-5 py-3 text-right font-medium text-slate-900">
-                      {formatCurrency(p.amount)}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      <td className="px-5 py-3 text-right font-medium text-slate-900">
+                        {formatCurrency(p.amount)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 

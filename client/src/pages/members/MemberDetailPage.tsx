@@ -22,7 +22,7 @@ import { RenewMemberModal } from './RenewMemberModal'
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
+      <dt className="font-signage text-[0.625rem] text-slate-500">{label}</dt>
       <dd className="mt-0.5 text-sm text-slate-900">{value ?? '—'}</dd>
     </div>
   )
@@ -68,7 +68,7 @@ export default function MemberDetailPage() {
         title={member.fullName}
         description={`Member since ${formatDate(member.createdAt)}`}
         action={
-          <div className="flex gap-2">
+          <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button
               variant="secondary"
               onClick={() => {
