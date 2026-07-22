@@ -37,6 +37,13 @@ export function useExpiringMembers(days = 7) {
   })
 }
 
+export function useMemberStats() {
+  return useQuery({
+    queryKey: queryKeys.membersStats,
+    queryFn: () => membersApi.stats(),
+  })
+}
+
 export function useCreateMember() {
   const qc = useQueryClient()
   return useMutation({

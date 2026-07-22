@@ -85,6 +85,60 @@ export const getExpiringMembers = async (
 };
 
 /**
+ * GET /api/members/stats
+ * Dashboard summary counts in a single aggregation:
+ * status breakdown + new sign-ups this month vs last month.
+ */
+export const getMemberStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const [stats] = await Member.aggregate([
+      {
+        $facet: {
+          byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+          newThisMonth: [
+            { $match: { createdAt: { $gte: monthStart } } },
+            { $count: 'count' },
+          ],
+          newLastMonth: [
+            { $match: { createdAt: { $gte: lastMonthStart, $lt: monthStart } } },
+            { $count: 'count' },
+          ],
+        },
+      },
+    ]);
+
+    const byStatus: Record<'active' | 'expired' | 'suspended', number> = {
+      active: 0,
+      expired: 0,
+      suspended: 0,
+    };
+    for (const s of stats.byStatus as Array<{ _id: string; count: number }>) {
+      if (s._id in byStatus) byStatus[s._id as keyof typeof byStatus] = s.count;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total: byStatus.active + byStatus.expired + byStatus.suspended,
+        byStatus,
+        newThisMonth: stats.newThisMonth[0]?.count ?? 0,
+        newLastMonth: stats.newLastMonth[0]?.count ?? 0,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * GET /api/members/:id
  */
 export const getMember = async (

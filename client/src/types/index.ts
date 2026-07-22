@@ -70,6 +70,13 @@ export interface Payment {
   updatedAt: string
 }
 
+export interface MemberStats {
+  total: number
+  byStatus: Record<MemberStatus, number>
+  newThisMonth: number
+  newLastMonth: number
+}
+
 export interface MonthlyRevenue {
   month: number
   revenue: number

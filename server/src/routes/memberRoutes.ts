@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getMembers,
   getExpiringMembers,
+  getMemberStats,
   getMember,
   createMember,
   updateMember,
@@ -18,6 +19,7 @@ router.use(protect);
 // Admins and owners: full day-to-day member management
 router.get('/', getMembers);
 router.get('/expiring', getExpiringMembers); // must come before /:id
+router.get('/stats', getMemberStats); // must come before /:id
 router.get('/:id', getMember);
 router.post('/', createMember);
 router.patch('/:id', updateMember);

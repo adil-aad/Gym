@@ -6,6 +6,7 @@ import type {
   Member,
   MemberInput,
   MemberQuery,
+  MemberStats,
   MemberUpdateInput,
   RenewInput,
 } from '../types'
@@ -20,6 +21,11 @@ export const membersApi = {
     const { data } = await api.get<ApiCount<Member>>('/members/expiring', {
       params: { days },
     })
+    return data.data
+  },
+
+  stats: async () => {
+    const { data } = await api.get<ApiItem<MemberStats>>('/members/stats')
     return data.data
   },
 

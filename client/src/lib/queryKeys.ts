@@ -9,6 +9,7 @@ export const queryKeys = {
   membersList: (query: MemberQuery) => ['members', 'list', query] as const,
   member: (id: string) => ['members', 'detail', id] as const,
   membersExpiring: (days: number) => ['members', 'expiring', days] as const,
+  membersStats: ['members', 'stats'] as const,
 
   plans: ['plans'] as const,
   plansList: (includeInactive: boolean) => ['plans', 'list', includeInactive] as const,

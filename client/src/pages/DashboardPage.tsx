@@ -1,27 +1,36 @@
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '../components/layout/PageHeader'
-import { Card, CardHeader } from '../components/ui/Card'
+import { Card, CardHeader, CardBody } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Spinner } from '../components/ui/Spinner'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useAuth } from '../context/AuthContext'
-import { useExpiringMembers } from '../hooks/useMembers'
+import { useExpiringMembers, useMemberStats } from '../hooks/useMembers'
 import { useRevenue } from '../hooks/usePayments'
-import { membersApi } from '../api/members'
-import { queryKeys } from '../lib/queryKeys'
-import { formatCurrency, formatDate, daysUntil } from '../lib/format'
+import {
+  formatCurrency,
+  formatDate,
+  daysUntil,
+  monthName,
+  paymentMethodLabel,
+} from '../lib/format'
+import type { MemberStats, RevenueAnalytics } from '../types'
+
+// Meter hue — matches RevenuePage (dataviz palette slot 1), ≥3:1 on white.
+const SERIES = '#2a78d6'
 
 function StatTile({
   label,
   value,
   loading,
   to,
+  hint,
 }: {
   label: string
   value: React.ReactNode
   loading?: boolean
   to?: string
+  hint?: React.ReactNode
 }) {
   const body = (
     <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white px-5 py-5">
@@ -31,6 +40,7 @@ function StatTile({
       <p className="mt-3 font-readout text-3xl font-medium text-slate-900">
         {loading ? <Spinner className="h-6 w-6" /> : value}
       </p>
+      {hint && !loading && <div className="mt-1.5 text-xs">{hint}</div>}
     </div>
   )
   return to ? (
@@ -45,19 +55,155 @@ function StatTile({
   )
 }
 
+/** Signed change vs the previous month, colored by direction. */
+function DeltaHint({
+  delta,
+  format = (n: number) => n.toLocaleString(),
+}: {
+  delta: number
+  format?: (n: number) => string
+}) {
+  if (delta === 0) {
+    return <span className="text-slate-400">same as last month</span>
+  }
+  const up = delta > 0
+  return (
+    <span className={up ? 'text-green-600' : 'text-red-600'}>
+      {up ? '▲' : '▼'} {format(Math.abs(delta))} vs last month
+    </span>
+  )
+}
+
+const STATUS_SEGMENTS = [
+  { key: 'active', label: 'Active', swatch: 'bg-green-500' },
+  { key: 'expired', label: 'Expired', swatch: 'bg-red-400' },
+  { key: 'suspended', label: 'Suspended', swatch: 'bg-slate-300' },
+] as const
+
+/** Proportion bar + legend for the roster's status split. */
+function StatusBreakdown({ stats }: { stats: MemberStats }) {
+  const { total, byStatus } = stats
+  if (total === 0) {
+    return <p className="text-sm text-slate-500">No members yet.</p>
+  }
+  return (
+    <>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+        {STATUS_SEGMENTS.filter((s) => byStatus[s.key] > 0).map((s) => (
+          <div
+            key={s.key}
+            className={s.swatch}
+            style={{ width: `${(byStatus[s.key] / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <ul className="mt-4 space-y-3">
+        {STATUS_SEGMENTS.map((s) => (
+          <li key={s.key} className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 text-slate-700">
+              <span className={`h-2.5 w-2.5 rounded-full ${s.swatch}`} />
+              {s.label}
+            </span>
+            <span
+              className="font-readout font-medium text-slate-900"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {byStatus[s.key].toLocaleString()}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+        {total.toLocaleString()} member{total === 1 ? '' : 's'} total
+      </p>
+    </>
+  )
+}
+
+/** Current-month revenue with month-over-month delta and yearly context. */
+function MonthRevenue({ data }: { data: RevenueAnalytics }) {
+  const month = new Date().getMonth() + 1 // 1-indexed, matches server $month
+  const rev = (m: number) =>
+    data.monthlyBreakdown.find((b) => b.month === m)?.revenue ?? 0
+  const thisMonth = rev(month)
+  // January's "last month" lives in the previous year's dataset — no delta.
+  const lastMonth = month > 1 ? rev(month - 1) : null
+
+  return (
+    <>
+      <p className="font-readout text-3xl font-medium text-slate-900">
+        {formatCurrency(thisMonth)}
+      </p>
+      {lastMonth !== null && (
+        <p className="mt-1.5 text-xs">
+          <DeltaHint
+            delta={thisMonth - lastMonth}
+            format={(n) => formatCurrency(n)}
+          />
+        </p>
+      )}
+      <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+        {formatCurrency(data.yearRevenue)} this year ·{' '}
+        {formatCurrency(data.totalRevenue)} all-time
+      </p>
+    </>
+  )
+}
+
+/** Meter list of revenue per payment method (mirrors RevenuePage). */
+function MethodMix({ data }: { data: RevenueAnalytics }) {
+  if (data.byPaymentMethod.length === 0) {
+    return <p className="text-sm text-slate-500">No payments yet.</p>
+  }
+  const max = Math.max(1, ...data.byPaymentMethod.map((m) => m.revenue))
+  return (
+    <ul className="space-y-4">
+      {[...data.byPaymentMethod]
+        .sort((a, b) => b.revenue - a.revenue)
+        .map((m) => (
+          <li key={m.method}>
+            <div className="mb-1 flex items-baseline justify-between text-sm">
+              <span className="text-slate-700">
+                {paymentMethodLabel(m.method)}
+                <span className="ml-1.5 text-xs text-slate-400">
+                  {m.payments} payment{m.payments === 1 ? '' : 's'}
+                </span>
+              </span>
+              <span
+                className="font-medium text-slate-900"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {formatCurrency(m.revenue)}
+              </span>
+            </div>
+            {/* Meter: unfilled track is a lighter step of the same hue */}
+            <div className="h-2 rounded-full bg-[#cde2fb]">
+              <div
+                className="h-2 rounded-full"
+                style={{
+                  width: `${Math.max(2, (m.revenue / max) * 100)}%`,
+                  backgroundColor: SERIES,
+                }}
+              />
+            </div>
+          </li>
+        ))}
+    </ul>
+  )
+}
+
 export default function DashboardPage() {
   const { user, isOwner } = useAuth()
   const year = new Date().getFullYear()
 
-  // Cheap count query — we only need `total`, so limit=1.
-  const activeCount = useQuery({
-    queryKey: queryKeys.membersList({ status: 'active', limit: 1, page: 1 }),
-    queryFn: () => membersApi.list({ status: 'active', limit: 1, page: 1 }),
-  })
-
+  // One aggregate call covers the status tiles and the breakdown card.
+  const stats = useMemberStats()
   const expiring = useExpiringMembers(7)
   // Admins get a 401 on this endpoint — never fire it for them.
   const revenue = useRevenue(year, isOwner)
+
+  const newDelta =
+    (stats.data?.newThisMonth ?? 0) - (stats.data?.newLastMonth ?? 0)
 
   return (
     <>
@@ -67,12 +213,19 @@ export default function DashboardPage() {
       />
 
       <div
-        className={`mb-6 grid gap-4 ${isOwner ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+        className={`mb-6 grid gap-4 ${isOwner ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}
       >
         <StatTile
           label="Active members"
-          value={activeCount.data?.total ?? 0}
-          loading={activeCount.isLoading}
+          value={stats.data?.byStatus.active ?? 0}
+          loading={stats.isLoading}
+          to="/members"
+        />
+        <StatTile
+          label="New this month"
+          value={stats.data?.newThisMonth ?? 0}
+          loading={stats.isLoading}
+          hint={stats.data ? <DeltaHint delta={newDelta} /> : undefined}
           to="/members"
         />
         <StatTile
@@ -90,7 +243,24 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <Card>
+      <div className="mb-6 grid items-start gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader
+            title="Membership"
+            subtitle="Where the roster stands by status."
+          />
+          <CardBody>
+            {stats.isLoading ? (
+              <div className="flex justify-center py-6">
+                <Spinner />
+              </div>
+            ) : stats.data ? (
+              <StatusBreakdown stats={stats.data} />
+            ) : null}
+          </CardBody>
+        </Card>
+
+        <Card className="lg:col-span-2">
         <CardHeader
           title="Expiring soon"
           subtitle="Active memberships ending within 7 days — follow up for renewals."
@@ -180,6 +350,32 @@ export default function DashboardPage() {
           </>
         )}
       </Card>
+      </div>
+
+      {/* Owner-only: revenue snapshot from the already-fetched analytics. */}
+      {isOwner && !revenue.isLoading && revenue.data && (
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <Card>
+            <CardHeader
+              title={`Revenue — ${monthName(new Date().getMonth() + 1)}`}
+              subtitle="Collected so far this month."
+            />
+            <CardBody>
+              <MonthRevenue data={revenue.data} />
+            </CardBody>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader
+              title="By payment method"
+              subtitle={`Where ${year} revenue came from.`}
+            />
+            <CardBody>
+              <MethodMix data={revenue.data} />
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </>
   )
 }
