@@ -1,10 +1,12 @@
 import { api } from './client'
 import type {
+  ApiCount,
   ApiItem,
   User,
   LoginInput,
   PasswordInput,
   RegisterStaffInput,
+  StaffUpdateInput,
 } from '../types'
 
 interface LoginResponse extends ApiItem<User> {
@@ -33,5 +35,23 @@ export const authApi = {
   registerStaff: async (input: RegisterStaffInput) => {
     const { data } = await api.post<ApiItem<User>>('/auth/register', input)
     return data.data
+  },
+
+  // Owner-only staff roster (admins only, server-filtered).
+  users: async () => {
+    const { data } = await api.get<ApiCount<User>>('/auth/users')
+    return data.data
+  },
+
+  updateUser: async (id: string, input: StaffUpdateInput) => {
+    const { data } = await api.patch<ApiItem<User>>(`/auth/users/${id}`, input)
+    return data.data
+  },
+
+  deleteUser: async (id: string) => {
+    const { data } = await api.delete<{ success: boolean; message: string }>(
+      `/auth/users/${id}`,
+    )
+    return data
   },
 }

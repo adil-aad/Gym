@@ -4,6 +4,7 @@ import type { MemberQuery, PaymentQuery } from '../types'
 // (['members'], ['plans'], ['payments']) so dependent lists stay fresh.
 export const queryKeys = {
   auth: ['auth', 'me'] as const,
+  staff: ['auth', 'staff'] as const,
 
   members: ['members'] as const,
   membersList: (query: MemberQuery) => ['members', 'list', query] as const,

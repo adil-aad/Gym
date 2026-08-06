@@ -177,6 +177,10 @@ export interface RegisterStaffInput {
   role?: Role
 }
 
+export interface StaffUpdateInput {
+  isActive?: boolean
+}
+
 export interface PasswordInput {
   currentPassword: string
   newPassword: string

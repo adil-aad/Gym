@@ -20,7 +20,7 @@ export interface IMember extends Document {
   isExpired: boolean;
 }
 
-// ─── Schema Definition ──────────────────────────────────────────────────────
+// Schema Definition 
 
 const MemberSchema = new Schema<IMember>(
   {

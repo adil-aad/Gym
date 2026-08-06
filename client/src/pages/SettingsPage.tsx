@@ -1,16 +1,22 @@
 import { useState, type FormEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
+import { Modal } from '../components/ui/Modal'
+import { Spinner } from '../components/ui/Spinner'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
+import { EmptyState } from '../components/ui/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { authApi } from '../api/auth'
 import { tokenStore } from '../api/client'
+import { queryKeys } from '../lib/queryKeys'
+import { useStaff, useUpdateStaff, useDeleteStaff } from '../hooks/useStaff'
 import { formatDate } from '../lib/format'
-import type { Role } from '../types'
+import type { Role, User } from '../types'
 
 function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState('')
@@ -99,6 +105,7 @@ function ChangePasswordCard() {
 }
 
 function RegisterStaffCard() {
+  const qc = useQueryClient()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -125,6 +132,10 @@ function RegisterStaffCard() {
       setEmail('')
       setPassword('')
       setRole('admin')
+      // Surface the new hire in the staff roster immediately (admins only).
+      if (user.role === 'admin') {
+        qc.invalidateQueries({ queryKey: queryKeys.staff })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account.')
     } finally {
@@ -185,6 +196,131 @@ function RegisterStaffCard() {
   )
 }
 
+function ManageStaffCard() {
+  const { data: staff, isLoading, isError, error } = useStaff()
+  const updateStaff = useUpdateStaff()
+  const deleteStaff = useDeleteStaff()
+  const [toDelete, setToDelete] = useState<User | null>(null)
+
+  // Track which row is mutating so only its buttons show a spinner.
+  const pendingId =
+    (updateStaff.isPending && updateStaff.variables?.id) ||
+    (deleteStaff.isPending && deleteStaff.variables) ||
+    null
+
+  const toggleActive = (s: User) =>
+    updateStaff.mutate({ id: s._id, input: { isActive: !s.isActive } })
+
+  const runDelete = () => {
+    if (!toDelete) return
+    deleteStaff.mutate(toDelete._id, { onSuccess: () => setToDelete(null) })
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Staff accounts"
+        subtitle="Admins you've appointed. Deactivate to block sign-in without deleting."
+      />
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
+      ) : isError ? (
+        <div className="p-5">
+          <ErrorMessage message={error?.message} />
+        </div>
+      ) : !staff || staff.length === 0 ? (
+        <EmptyState
+          title="No staff yet"
+          description="Add a staff account below to give front-desk access."
+        />
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {staff.map((s) => {
+            const busy = pendingId === s._id
+            return (
+              <li
+                key={s._id}
+                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-medium text-slate-900">{s.name}</p>
+                    {!s.isActive && <Badge tone="slate">Deactivated</Badge>}
+                  </div>
+                  <p className="mt-0.5 truncate text-sm text-slate-500">{s.email}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Added {formatDate(s.createdAt)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={busy && updateStaff.isPending}
+                    disabled={busy}
+                    onClick={() => toggleActive(s)}
+                  >
+                    {s.isActive ? 'Deactivate' : 'Reactivate'}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => setToDelete(s)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <Modal
+        open={toDelete !== null}
+        onClose={() => setToDelete(null)}
+        title="Delete staff account"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={deleteStaff.isPending}
+              onClick={runDelete}
+            >
+              Delete account
+            </Button>
+          </>
+        }
+      >
+        {toDelete && (
+          <p className="text-sm text-slate-600">
+            Permanently delete <strong>{toDelete.name}</strong>'s account? They will
+            no longer be able to sign in. Records they created (members, payments)
+            are kept. This can't be undone.
+          </p>
+        )}
+        {deleteStaff.isError && (
+          <div className="mt-3">
+            <ErrorMessage
+              message={
+                deleteStaff.error instanceof Error
+                  ? deleteStaff.error.message
+                  : 'Something went wrong.'
+              }
+            />
+          </div>
+        )}
+      </Modal>
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   const { user, isOwner } = useAuth()
 
@@ -229,6 +365,7 @@ export default function SettingsPage() {
 
         <ChangePasswordCard />
 
+        {isOwner && <ManageStaffCard />}
         {isOwner && <RegisterStaffCard />}
       </div>
     </>

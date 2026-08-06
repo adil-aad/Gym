@@ -9,7 +9,7 @@ export const tokenStore = {
 }
 
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 // Attach the bearer token to every request when present.

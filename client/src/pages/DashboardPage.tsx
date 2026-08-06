@@ -198,7 +198,9 @@ export default function DashboardPage() {
 
   // One aggregate call covers the status tiles and the breakdown card.
   const stats = useMemberStats()
-  const expiring = useExpiringMembers(7)
+  // Tile counts the 3-day horizon; the list drills into the next 24 hours.
+  const expiring3 = useExpiringMembers(3)
+  const expiringSoon = useExpiringMembers(1)
   // Admins get a 401 on this endpoint — never fire it for them.
   const revenue = useRevenue(year, isOwner)
 
@@ -229,9 +231,9 @@ export default function DashboardPage() {
           to="/members"
         />
         <StatTile
-          label="Expiring in 7 days"
-          value={expiring.data?.length ?? 0}
-          loading={expiring.isLoading}
+          label="Expiring in 3 days"
+          value={expiring3.data?.length ?? 0}
+          loading={expiring3.isLoading}
         />
         {isOwner && (
           <StatTile
@@ -263,22 +265,22 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
         <CardHeader
           title="Expiring soon"
-          subtitle="Active memberships ending within 7 days — follow up for renewals."
+          subtitle="Active memberships ending within the next 24 hours — follow up for renewals."
         />
-        {expiring.isLoading ? (
+        {expiringSoon.isLoading ? (
           <div className="flex justify-center py-10">
             <Spinner />
           </div>
-        ) : !expiring.data || expiring.data.length === 0 ? (
+        ) : !expiringSoon.data || expiringSoon.data.length === 0 ? (
           <EmptyState
-            title="Nothing expiring this week"
-            description="All active memberships run beyond the next 7 days."
+            title="Nothing expiring today"
+            description="No active memberships end in the next 24 hours."
           />
         ) : (
           <>
           {/* Mobile: card list. */}
           <ul className="divide-y divide-slate-100 md:hidden">
-            {expiring.data.map((m) => {
+            {expiringSoon.data.map((m) => {
               const days = daysUntil(m.expiryDate)
               return (
                 <li key={m._id} className="px-4 py-3">
@@ -315,7 +317,7 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {expiring.data.map((m) => {
+              {expiringSoon.data.map((m) => {
                 const days = daysUntil(m.expiryDate)
                 return (
                   <tr
