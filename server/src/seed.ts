@@ -21,6 +21,14 @@ const run = async () => {
     console.log('owner already exists');
   }
 
+  const existingAdmin = await User.findOne({ email: 'admin@gym.com' });
+  if (!existingAdmin) {
+    await User.create({ name: 'Gym Admin', email: 'admin@gym.com', password: 'secret123', role: 'admin' });
+    console.log('admin created');
+  } else {
+    console.log('admin already exists');
+  }
+
   for (const plan of PLANS) {
     const found = await Plan.findOne({ durationInMonths: plan.durationInMonths });
     if (!found) {
